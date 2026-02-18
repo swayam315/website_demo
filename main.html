@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swayam Khangaonkar | AI Engineer Portfolio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=Jost:wght@400;500;600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- GSAP for Animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <!-- Three.js Core -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Three.js OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        /* Global & Landing Page Styles */
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            font-family: 'Rajdhani', sans-serif; 
+            color: white; 
+            /* Disable text cursor (I-beam) globally */
+            user-select: none; 
+            -webkit-user-select: none; 
+            cursor: default; 
+        }
+        
+        /* Re-enable text cursor only for inputs */
+        input, textarea { 
+            user-select: text; 
+            -webkit-user-select: text; 
+            cursor: text; 
+        }
+
+        /* Ensure links and buttons have pointer */
+        a, button, .nav-item, .top-nav-link {
+            cursor: pointer;
+        }
+
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; cursor: grab; }
+        #canvas-container:active { cursor: grabbing; }
+        #app-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        .pointer-events-auto { pointer-events: auto; }
+        h1, h2, h3 { font-family: 'Orbitron', sans-serif; }
+
+        /* Menu Styling */
+        .nav-item { position: relative; cursor: pointer; transition: all 0.3s ease; text-shadow: 0 0 5px rgba(0,0,0,0.5); display: block; width: fit-content; }
+        .nav-item::before { content: ''; position: absolute; left: -20px; top: 50%; transform: translateY(-50%); width: 0; height: 2px; background-color: #00f3ff; transition: width 0.3s ease; }
+        .nav-item:hover { color: #00f3ff; padding-left: 10px; }
+        .nav-item:hover::before { width: 15px; }
+
+        /* Top Navbar */
+        .top-nav-link { position: relative; color: #ccc; transition: color 0.3s; cursor: pointer; padding: 5px 0; }
+        .top-nav-link:hover, .top-nav-link.active { color: #00f3ff; }
+        .top-nav-link.active::after { content: ''; position: absolute; bottom: 0px; left: 0; width: 100%; height: 2px; background-color: #00f3ff; box-shadow: 0 0 10px #00f3ff; }
+        .glass-nav { background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+
+        /* Landing Page Specific Navbar - Hidden by default */
+        #landing-navbar {
+            transform: translateY(-100%);
+            transition: transform 0.4s ease-in-out;
+        }
+        #landing-navbar.visible {
+            transform: translateY(0);
+        }
+
+        /* Glass Panel */
+        .glass-panel { background: rgba(20, 20, 30, 0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+
+        /* NEW STYLES FROM D.HTML */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        /* Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #00f3ff; }
+
+        /* Transitions */
+        .fade-enter { opacity: 0; transform: translateY(10px); }
+        .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 0.5s ease, transform 0.5s ease; }
+        .hidden-view { display: none !important; }
+
+        /* Animations */
+        .heart-btn { transition: transform 0.2s; cursor: pointer; }
+        .heart-btn:active { transform: scale(1.3); }
+        .heart-active { color: #ff0044 !important; }
+
+        /* PROFILE CARD */
+        .card { max-width: 900px; width: 100%; margin: auto; overflow-y: auto; position: relative; z-index: 1; overflow-x: hidden; background-color: rgba(255, 255, 255, 1); display: flex; transition: 0.3s; flex-direction: column; border-radius: 10px; box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.2); font-family: "Jost", sans-serif; color: #2b2c48; }
+        .card[data-state="#about"], .card[data-state="#contact"] { height: 500px; }
+        .card[data-state="#experience"] { height: 600px; }
+        
+        .card-header { position: relative; display: flex; height: 200px; flex-shrink: 0; width: 100%; transition: 0.3s; }
+        .card-cover { width: 100%; height: 100%; position: absolute; height: 160px; top: -20%; left: 0; will-change: top; background-size: cover; background-position: center; filter: blur(30px); transform: scale(1.2); transition: 0.5s; }
+        
+        /* RESTORED: Profile Avatar to previous small size and location inside header */
+        .card-avatar { 
+            width: 100px; height: 100px; 
+            box-shadow: 0 8px 8px rgba(0, 0, 0, 0.2); 
+            border-radius: 50%; object-position: center; object-fit: cover; 
+            position: absolute; 
+            bottom: 0; 
+            left: 50%; 
+            transform: translateX(-50%) translateY(-64px); 
+            background-color: #2b2c48; 
+            display: flex; align-items: center; justify-content: center; 
+            color: white; font-size: 50px; overflow: hidden; 
+            transition: 0.3s;
+            z-index: 10;
+        }
+        .card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* RESTORED: Name Positioning */
+        .card-fullname { 
+            position: absolute; 
+            bottom: 0; 
+            font-size: 22px; font-weight: 700; text-align: center; white-space: nowrap; 
+            transform: translateY(-10px) translateX(-50%); 
+            left: 50%; 
+            color: #2b2c48; 
+            transition: 0.3s;
+        }
+
+        /* RESTORED: Main Content Padding */
+        .card-main { position: relative; flex: 1; display: flex; padding-top: 10px; flex-direction: column; transition: 0.3s; }
+        .card-subtitle { font-weight: 700; font-size: 13px; margin-bottom: 8px; color: #2b2c48; }
+        .card-content { padding: 20px; }
+        .card-desc { line-height: 1.6; color: #636b6f; font-size: 14px; margin: 0; font-weight: 400; font-family: "DM Sans", sans-serif; }
+        
+        /* ACTIVE STATE (Collapsed Header) */
+        .card.is-active .card-header { height: 80px; }
+        .card.is-active .card-cover { height: 100px; top: -50px; }
+        
+        .card.is-active .card-avatar { 
+            transform: none; left: 20px; width: 50px; height: 50px; bottom: 10px; 
+        }
+        .card.is-active .card-fullname { 
+            left: 86px; transform: none; bottom: 18px; font-size: 19px; 
+        }
+        
+        .card.is-active .card-main { padding-top: 10px; } 
+
+        .card-social { display: flex; align-items: center; padding: 0 20px; margin-bottom: 30px; }
+        .card-social svg { fill: rgb(165, 181, 206); width: 16px; display: block; transition: 0.3s; }
+        .card-social a { color: #8797a1; height: 32px; width: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; transition: 0.3s; background-color: rgba(93, 133, 193, 0.05); margin-right: 10px; }
+        .card-social a:hover svg { fill: #3b4e72; }
+        .card-buttons { display: flex; background-color: #fff; margin-top: auto; position: sticky; bottom: 0; left: 0; }
+        .card-buttons button { flex: 1 1 auto; user-select: none; background: 0; font-size: 13px; border: 0; padding: 15px 5px; cursor: pointer; color: #5c5c6d; transition: 0.3s; font-family: "Jost", sans-serif; font-weight: 500; outline: 0; border-bottom: 3px solid transparent; }
+        .card-buttons button.is-active, .card-buttons button:hover { color: #2b2c48; border-bottom: 3px solid #8a84ff; background: linear-gradient(to bottom, rgba(127, 199, 231, 0) 0%, rgba(207, 204, 255, 0.2) 44%, rgba(211, 226, 255, 0.4) 100%); }
+        .card-section { display: none; }
+        .card-section.is-active { display: block; animation: fadeIn 0.6s both; }
+        .card-timeline { margin-top: 30px; position: relative; padding-left: 10px; }
+        /* The Line */
+        .card-timeline:after { 
+            background: linear-gradient(to bottom, #a2b3f5 0%, #516acc 100%); 
+            content: ""; left: 60px; width: 2px; top: 0; height: 100%; position: absolute; 
+        }
+        .card-item { position: relative; padding-left: 80px; padding-right: 20px; padding-bottom: 30px; z-index: 1; min-height: 60px; }
+        .card-item:last-child { padding-bottom: 5px; }
+        /* The Dot */
+        .card-item:after { 
+            content: ''; position: absolute; top: 5px; left: 56px; width: 10px; height: 10px; 
+            border: 2px solid #fff; border-radius: 50%; background: #516acc; z-index: 2;
+            box-shadow: 0 0 5px rgba(81, 106, 204, 0.6);
+        }
+        /* Logo Styling */
+        .card-item-logo {
+            position: absolute; left: 0; top: 0; width: 45px; height: 45px;
+            border-radius: 50%; overflow: hidden; background: #f0f0f0; border: 1px solid #ddd;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .card-item-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .card-item-logo i { font-size: 20px; color: #aaa; }
+
+        .card-item-role { font-weight: 700; font-size: 15px; color: #2b2c48; line-height: 1.2; }
+        .card-item-company { font-weight: 600; font-size: 13px; color: #516acc; margin-bottom: 2px; }
+        .card-item-year { font-size: 12px; color: #888; font-style: italic; margin-bottom: 6px; }
+        .card-item-desc { font-size: 13px; color: #6f6f7b; line-height: 1.5; font-family: "DM Sans", sans-serif; }
+
+        .card-contact-wrapper { margin-top: 20px; }
+        .card-contact { display: flex; align-items: center; font-size: 13px; color: #6f6f7b; font-family: "DM Sans", sans-serif; line-height: 1.6; cursor: pointer; }
+        .card-contact + .card-contact { margin-top: 16px; }
+        .card-contact svg { flex-shrink: 0; width: 30px; min-height: 34px; margin-right: 12px; transition: 0.3s; padding-right: 12px; border-right: 1px solid #dfe2ec; }
+        .contact-me { border: 0; outline: none; background: linear-gradient(to right, rgba(83, 200, 239, 0.8) 0%, rgba(81, 106, 204, 0.8) 96%); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15); color: #fff; padding: 12px 16px; width: 100%; border-radius: 5px; margin-top: 25px; cursor: pointer; font-size: 14px; font-weight: 500; font-family: "Jost", sans-serif; transition: 0.3s; }
+        .contact-me:hover { opacity: 0.9; }
+        
+        .admin-tab-btn.active { background-color: rgba(255,255,255,0.1); color: #00f3ff; border-left: 4px solid #00f3ff; }
+        button, a, .nav-item, .top-nav-link { pointer-events: auto !important; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Background -->
+    <div id="canvas-container"></div>
+
+    <!-- Image Viewer Modal -->
+    <div id="image-viewer" class="fixed inset-0 z-[100] hidden bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center">
+        <button onclick="closeViewer()" class="absolute top-6 right-6 text-gray-300 hover:text-red-500 transition duration-300 text-5xl z-[105] cursor-pointer bg-black/50 rounded-full w-12 h-12 flex items-center justify-center border border-white/20">
+            <i class="fas fa-times text-3xl"></i>
+        </button>
+        <div class="flex items-center justify-between w-full h-full p-4 md:p-10 relative">
+            <div class="flex-shrink-0 z-[102] flex items-center justify-center w-16 md:w-24">
+                <button id="viewer-prev" onclick="changeViewerImage(-1)" class="text-white hover:text-cyan-400 transition transform hover:scale-110 active:scale-95 text-6xl md:text-7xl cursor-pointer hidden drop-shadow-lg">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+            <div class="flex-1 h-full flex items-center justify-center relative overflow-hidden">
+                <div class="relative bg-black/40 border-2 border-cyan-500/30 rounded-lg shadow-[0_0_50px_rgba(0,243,255,0.15)] p-1 md:p-2 max-w-full max-h-full flex items-center justify-center">
+                    <img id="viewer-img" src="" alt="View" class="max-w-full max-h-[85vh] object-contain rounded">
+                </div>
+            </div>
+            <div class="flex-shrink-0 z-[102] flex items-center justify-center w-16 md:w-24">
+                <button id="viewer-next" onclick="changeViewerImage(1)" class="text-white hover:text-cyan-400 transition transform hover:scale-110 active:scale-95 text-6xl md:text-7xl cursor-pointer hidden drop-shadow-lg">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main UI Container -->
+    <div id="app-ui">
+        
+        <!-- VIEW 1: LANDING PAGE (Scrollable) -->
+        <div id="landing-view" class="w-full h-full overflow-y-auto custom-scrollbar transition-all duration-500 relative z-20 pointer-events-auto">
+            
+            <!-- Sticky Navbar for Landing Page (Initially Hidden) -->
+            <nav id="landing-navbar" class="fixed top-0 left-0 w-full h-20 glass-nav flex items-center justify-between px-8 md:px-12 z-50">
+                <div class="flex items-center gap-4 cursor-pointer" onclick="document.getElementById('landing-view').scrollTo({top:0, behavior:'smooth'})">
+                    <div class="text-2xl font-bold font-[Orbitron] text-white hover:text-cyan-400 transition">PORTFOLIO</div>
+                </div>
+                <div class="hidden md:flex gap-6 text-sm font-bold tracking-wider">
+                    <span onclick="navigateTo('profile')" class="top-nav-link" data-link="profile">PROFILE</span>
+                    <span onclick="navigateTo('education')" class="top-nav-link" data-link="education">EDUCATION</span>
+                    <span onclick="navigateTo('hackathon')" class="top-nav-link" data-link="hackathon">HACKATHON</span>
+                    <span onclick="navigateTo('certificates')" class="top-nav-link" data-link="certificates">CERTIFICATES</span>
+                    <span onclick="navigateTo('projects')" class="top-nav-link" data-link="projects">PROJECTS</span>
+                    <span onclick="navigateTo('contact')" class="top-nav-link" data-link="contact">CONTACT</span>
+                    <span onclick="navigateTo('admin')" class="top-nav-link" data-link="admin">ADMIN</span>
+                </div>
+                <!-- Mobile Menu Icon -->
+                <div class="md:hidden text-2xl cursor-pointer" onclick="document.getElementById('landing-view').scrollTo({top:0, behavior:'smooth'})">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+            </nav>
+
+            <!-- 1. Hero Section -->
+            <div id="hero-section" class="min-h-screen flex flex-col justify-between p-8 md:p-12 relative">
+                <div class="pointer-events-auto w-fit">
+                    <h1 class="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500">PORTFOLIO</h1>
+                    <p class="text-xl md:text-2xl text-gray-300 mt-2 tracking-widest">SWAYAM KHANGAONKAR</p>
+                    <p class="text-sm text-cyan-400 tracking-wider font-bold">AI ENGINEER</p>
+                </div>
+                <nav class="pointer-events-auto mt-auto mb-auto w-fit">
+                    <ul class="space-y-4 text-xl md:text-3xl font-semibold">
+                        <li onclick="navigateTo('profile')" class="nav-item">PROFILE</li>
+                        <li onclick="navigateTo('education')" class="nav-item">EDUCATION</li>
+                        <li onclick="navigateTo('hackathon')" class="nav-item">HACKATHON</li>
+                        <li onclick="navigateTo('certificates')" class="nav-item">CERTIFICATES</li>
+                        <li onclick="navigateTo('projects')" class="nav-item">PROJECTS</li>
+                        <li onclick="navigateTo('contact')" class="nav-item">CONTACT ME</li>
+                        <li onclick="navigateTo('admin')" class="nav-item">ADMIN</li>
+                    </ul>
+                </nav>
+
+                <!-- Scroll Down Indicator -->
+                <div class="flex flex-col items-center justify-center w-full mt-10 pointer-events-auto cursor-pointer animate-bounce" onclick="document.getElementById('services').scrollIntoView({behavior: 'smooth'})">
+                    <span class="text-xs tracking-[0.3em] font-bold text-cyan-400 uppercase mb-2">Scroll Down</span>
+                    <i class="fas fa-chevron-down text-white text-2xl"></i>
+                </div>
+            </div>
+
+            <!-- Wrapper for solid background content (Separate Frame) -->
+            <div id="content-frame" class="bg-black relative z-30 w-full">
+                
+                <!-- 2. Services Section (from d.html) -->
+                <section id="services" class="py-32 relative z-20 pointer-events-auto">
+                    <div class="max-w-7xl mx-auto px-6">
+                        <div class="flex flex-col md:flex-row justify-between items-end mb-20 scroll-reveal">
+                            <h2 class="text-5xl font-bold">My Services</h2>
+                            <p class="text-gray-400 max-w-sm mt-4 md:mt-0">I provide a full range of digital solutions to help you scale your business.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="glass-card p-10 rounded-2xl scroll-reveal group">
+                                <div class="text-4xl mb-6 text-indigo-400 group-hover:scale-110 transition-transform duration-300">01</div>
+                                <h3 class="text-2xl font-bold mb-4">Web Development</h3>
+                                <p class="text-gray-400">Custom websites built with React, Python, and modern frameworks. Fast, secure, and scalable.</p>
+                            </div>
+                            <div class="glass-card p-10 rounded-2xl scroll-reveal group">
+                                <div class="text-4xl mb-6 text-purple-400 group-hover:scale-110 transition-transform duration-300">02</div>
+                                <h3 class="text-2xl font-bold mb-4">UI/UX Design</h3>
+                                <p class="text-gray-400">Designing intuitive and beautiful interfaces that users love to interact with. Figma & Adobe XD experts.</p>
+                            </div>
+                            <div class="glass-card p-10 rounded-2xl scroll-reveal group">
+                                <div class="text-4xl mb-6 text-pink-400 group-hover:scale-110 transition-transform duration-300">03</div>
+                                <h3 class="text-2xl font-bold mb-4">Brand Identity</h3>
+                                <p class="text-gray-400">Logo design, typography, and color palettes that define your brand's unique voice.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Footer Section (from d.html) -->
+                <footer id="contact-footer" class="py-20 border-t border-white/10 relative z-20 pointer-events-auto">
+                    <div class="max-w-7xl mx-auto px-6 text-center">
+                        <h2 class="text-6xl md:text-8xl font-bold mb-10 tracking-tighter scroll-reveal">LET'S WORK <br> TOGETHER</h2>
+                        <div class="flex justify-center gap-6 mb-12">
+                            <a href="mailto:swayamkhangaonkar2006@gmail.com" class="px-8 py-4 bg-white text-black rounded-full font-bold hover:bg-indigo-500 hover:text-white transition-all">Email Me</a>
+                            <a href="https://www.linkedin.com/in/swayam-khangaonkar-227bab345" target="_blank" class="px-8 py-4 border border-white/20 rounded-full font-bold hover:bg-white hover:text-black transition-all">LinkedIn</a>
+                        </div>
+                        <p class="text-gray-500 text-sm">© 2026 Portfolio. Designed & Built for Freelancing.</p>
+                    </div>
+                </footer>
+            </div>
+
+        </div>
+
+        <!-- VIEW 2: INNER PAGES (Hidden by default) -->
+        <div id="page-view" class="w-full h-full hidden-view flex flex-col transition-all duration-500">
+            <nav class="pointer-events-auto w-full h-20 glass-nav flex items-center justify-between px-8 md:px-12 z-50">
+                <div class="flex items-center gap-4 cursor-pointer" onclick="navigateTo('home')">
+                    <div class="text-2xl font-bold font-[Orbitron] text-white hover:text-cyan-400 transition">PORTFOLIO</div>
+                </div>
+                <div class="hidden md:flex gap-6 text-sm font-bold tracking-wider">
+                    <span onclick="navigateTo('profile')" class="top-nav-link" data-link="profile">PROFILE</span>
+                    <span onclick="navigateTo('education')" class="top-nav-link" data-link="education">EDUCATION</span>
+                    <span onclick="navigateTo('hackathon')" class="top-nav-link" data-link="hackathon">HACKATHON</span>
+                    <span onclick="navigateTo('certificates')" class="top-nav-link" data-link="certificates">CERTIFICATES</span>
+                    <span onclick="navigateTo('projects')" class="top-nav-link" data-link="projects">PROJECTS</span>
+                    <span onclick="navigateTo('contact')" class="top-nav-link" data-link="contact">CONTACT</span>
+                    <span onclick="navigateTo('admin')" class="top-nav-link" data-link="admin">ADMIN</span>
+                </div>
+                <div class="md:hidden text-2xl cursor-pointer" onclick="navigateTo('home')"><i class="fas fa-times"></i></div>
+            </nav>
+            <div id="page-content-container" class="pointer-events-auto flex-1 overflow-y-auto custom-scrollbar p-6 md:p-12">
+                <div class="mx-auto rounded-xl min-h-[80%] fade-enter-active w-full flex justify-center">
+                    <div id="dynamic-content" class="w-full flex justify-center"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GSAP ANIMATIONS ---
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Function to init animations when landing view is active
+        function initLandingAnimations() {
+            // Setup Scroll Listener for Navbar
+            const landingView = document.getElementById('landing-view');
+            const landingNavbar = document.getElementById('landing-navbar');
+            
+            landingView.addEventListener('scroll', () => {
+                const triggerHeight = window.innerHeight * 0.7; // Show navbar after 70% scroll
+                
+                if (landingView.scrollTop > triggerHeight) {
+                    landingNavbar.classList.add('visible');
+                } else {
+                    landingNavbar.classList.remove('visible');
+                }
+            });
+
+            // Scroll Reveal Animations
+            gsap.utils.toArray('.scroll-reveal').forEach(element => {
+                gsap.from(element, {
+                    scrollTrigger: {
+                        trigger: element,
+                        scroller: "#landing-view", // Important: Define the scrolling container
+                        start: "top 85%", 
+                        toggleActions: "play none none reverse"
+                    },
+                    y: 50,
+                    opacity: 0,
+                    duration: 1,
+                    ease: "power3.out"
+                });
+            });
+        }
+
+        // --- GLOBAL STATE ---
+        let isAuthenticated = false;
+        let activeAdminTab = 'profile';
+        let editMode = false;
+        let editIndex = null;
+        
+        let galleryContext = [];
+        let currentSlideIndex = 0;
+        
+        let portfolioState = {
+            profile: {
+                name: "Swayam Khangaonkar",
+                title: "AI Engineer", 
+                about: "Passionate about Artificial Intelligence, Neural Networks, and solving real-world problems through code. Currently focusing on Large Language Models (LLMs) and Computer Vision. I believe in writing clean, efficient code that scales.",
+                avatar: "", 
+                experience: [] 
+            },
+            education: [], 
+            hackathons: [
+                {
+                    title: "Smart India Hackathon",
+                    rank: "WINNER",
+                    desc: "Developed a real-time computer vision system.",
+                    tech: ["OpenCV", "YOLOv8", "Flask"],
+                    likes: 142,
+                    demoLink: "#",
+                    images: []
+                }
+            ],
+            projects: [
+                {
+                    title: "Autonomous Drone Nav",
+                    desc: "Built an obstacle avoidance system using LiDAR data and reinforcement learning.",
+                    githubLink: "#",
+                    websiteLink: "#",
+                    image: "" 
+                }
+            ],
+            certificates: [
+                {
+                    title: "TensorFlow Developer",
+                    issuer: "Google Certificate",
+                    desc: "Demonstrated proficiency in building deep learning models.",
+                    images: ["https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/US-CertificateOfNaturalization-2018.jpg/640px-US-CertificateOfNaturalization-2018.jpg"]
+                }
+            ],
+            messages: [] 
+        };
+
+        // --- RENDERERS ---
+
+        const renderProfile = () => {
+            let expItems = portfolioState.profile.experience.map(exp => `
+                <div class="card-item">
+                    <div class="card-item-logo">
+                        ${exp.logo ? `<img src="${exp.logo}" alt="Logo">` : `<i class="fas fa-briefcase"></i>`}
+                    </div>
+                    <div class="card-item-role">${exp.role}</div>
+                    <div class="card-item-company">${exp.company}</div>
+                    <div class="card-item-year">${exp.date}</div>
+                    <div class="card-item-desc">${exp.desc}</div>
+                </div>
+            `).join('');
+
+            return `
+            <div class="card" data-state="#about">
+              <div class="card-header">
+                <div class="card-cover" style="background-image: url('https://images.unsplash.com/photo-1549068106-b024baf5062d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=934&q=80')"></div>
+                <div class="card-avatar">${portfolioState.profile.avatar ? `<img src="${portfolioState.profile.avatar}" alt="Profile">` : '<i class="fas fa-user"></i>'}</div>
+                <h1 class="card-fullname">${portfolioState.profile.name}</h1>
+              </div>
+              <div class="card-main">
+                <div class="card-section is-active" id="about">
+                  <div class="card-content"><div class="card-subtitle">ABOUT</div><p class="card-desc">${portfolioState.profile.about}</p></div>
+                  <div class="card-social">
+                    <a href="https://www.linkedin.com/in/swayam-khangaonkar-227bab345" target="_blank"><i class="fab fa-linkedin-in text-lg"></i></a>
+                    <a href="https://www.instagram.com/kswayammmm?igsh=MXE1cDZndGJyODQyMw%3D%3D" target="_blank"><i class="fab fa-instagram text-lg"></i></a>
+                    <a href="https://mail.google.com/mail/?view=cm&fs=1&to=swayamkhangaonkar2006@gmail.com" target="_blank"><i class="fas fa-envelope text-lg"></i></a>
+                  </div>
+                </div>
+                <div class="card-section" id="experience"><div class="card-content"><div class="card-subtitle">WORK EXPERIENCE</div><div class="card-timeline">${expItems || '<div class="text-gray-400 text-sm italic">No experience added yet.</div>'}</div></div></div>
+                <div class="card-section" id="contact">
+                  <div class="card-content">
+                    <div class="card-subtitle">CONTACT</div>
+                    <div class="card-contact-wrapper">
+                      <div class="card-contact"><i class="fas fa-map-marker-alt mr-2"></i> India</div>
+                      <div class="card-contact"><i class="fas fa-envelope mr-2"></i> swayamkhangaonkar2006@gmail.com</div>
+                      <button onclick="navigateTo('contact')" class="contact-me">WORK TOGETHER</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-buttons">
+                  <button data-section="#about" class="is-active">ABOUT</button>
+                  <button data-section="#experience">EXPERIENCE</button>
+                  <button data-section="#contact">CONTACT</button>
+                </div>
+              </div>
+            </div>`;
+        };
+
+        const renderEducation = () => {
+            let items = portfolioState.education.map((edu, idx) => `
+                <div class="relative group fade-enter-active">
+                    <div class="absolute -left-[41px] md:-left-[45px] top-1 w-6 h-6 bg-black border-4 border-cyan-500 rounded-full shadow-[0_0_15px_#00f3ff] z-10"></div>
+                    <div class="bg-white/5 p-6 rounded-xl border border-white/10 hover:border-cyan-500/50 transition">
+                        <h3 class="text-2xl font-bold text-white">${edu.degree}</h3>
+                        <div class="text-cyan-300 font-bold mt-1 text-lg">${edu.institution}</div>
+                        <div class="inline-block px-3 py-1 mt-2 mb-3 bg-cyan-900/40 rounded text-sm text-cyan-200 border border-cyan-500/30"><i class="far fa-calendar-alt mr-2"></i>${edu.year}</div>
+                        <p class="text-gray-300 leading-relaxed">${edu.desc}</p>
+                        ${edu.images && edu.images.length > 0 ? `<button onclick="openGallery('education', ${idx})" class="mt-4 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 rounded text-white text-sm font-bold hover:shadow-[0_0_15px_rgba(0,243,255,0.4)] transition"><i class="fas fa-images mr-2"></i> Gallery of Memories</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+            return `<div class="max-w-6xl w-full glass-panel p-8 md:p-12 rounded-xl min-h-[500px]"><h2 class="text-4xl font-bold mb-12 text-cyan-400 border-b border-gray-700 pb-4">Academic Journey</h2><div class="relative pl-8 md:pl-12 space-y-12"><div class="absolute left-[7px] md:left-[11px] top-2 bottom-0 w-0.5 bg-gradient-to-b from-cyan-500 to-transparent"></div>${items.length ? items : '<div class="text-gray-500 italic py-10">No entries yet.</div>'}</div></div>`;
+        };
+
+        const renderHackathons = () => {
+            const sorted = [...portfolioState.hackathons].sort((a, b) => {
+                const isWinA = /win|won|winner/i.test(a.rank);
+                const isWinB = /win|won|winner/i.test(b.rank);
+                return isWinA === isWinB ? 0 : isWinA ? -1 : 1;
+            });
+
+            let items = sorted.map((hack, index) => `
+                <div class="bg-gradient-to-r from-purple-900/40 to-blue-900/40 p-8 rounded-xl border border-white/10 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-yellow-500 text-black font-bold px-4 py-1 rounded-bl-xl shadow-lg">${hack.rank}</div>
+                    <h3 class="text-3xl font-bold text-white mb-2">${hack.title}</h3>
+                    <p class="text-gray-400 leading-relaxed mb-6">${hack.desc}</p>
+                    <div class="flex flex-wrap gap-4 items-center mt-6 pt-6 border-t border-white/10">
+                        ${hack.images && hack.images.length > 0 ? `<button onclick="openGallery('hackathons', ${index})" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 rounded font-bold text-white transition">View Images</button>` : ''}
+                        ${hack.demoLink ? `<a href="${hack.demoLink}" target="_blank" class="px-5 py-2 bg-transparent border border-white/30 hover:bg-white/10 rounded font-bold text-white transition">Prototype (Demo)</a>` : ''}
+                        <div class="ml-auto flex items-center gap-2"><button onclick="likeHackathon(this)" class="heart-btn text-3xl text-gray-500 hover:text-red-400 transition"><i class="far fa-heart"></i></button><span class="text-xl font-bold count">${hack.likes || 0}</span></div>
+                    </div>
+                </div>
+            `).join('');
+            return `<div class="max-w-6xl w-full glass-panel p-8 md:p-12 rounded-xl"><h2 class="text-4xl font-bold mb-10 text-cyan-400 border-b border-gray-700 pb-4">Hackathon Participated & Won</h2><div class="space-y-8">${items || '<div class="text-gray-500">No hackathons listed.</div>'}</div></div>`;
+        };
+
+        const renderProjects = () => {
+            let items = portfolioState.projects.map((p, i) => `
+                <div class="bg-gray-900/60 rounded-xl overflow-hidden border border-white/10 hover:border-cyan-500/50 transition hover:-translate-y-2 duration-300">
+                    <div class="h-48 bg-gray-800 relative flex items-center justify-center overflow-hidden">
+                        ${p.image ? 
+                            `<img src="${p.image}" class="w-full h-full object-cover">` : 
+                            `<i class="fas fa-code text-5xl text-gray-600"></i>`
+                        }
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-2xl font-bold text-white mb-2">${p.title}</h3>
+                        <p class="text-gray-400 text-sm mb-4">${p.desc}</p>
+                        <div class="flex gap-4">
+                            ${p.githubLink ? `<a href="${p.githubLink}" target="_blank" class="px-3 py-1 border border-white/30 rounded text-sm hover:bg-white hover:text-black transition"><i class="fab fa-github mr-1"></i> Code</a>` : ''}
+                            ${p.websiteLink ? `<a href="${p.websiteLink}" target="_blank" class="px-3 py-1 border border-cyan-500/50 text-cyan-300 rounded text-sm hover:bg-cyan-500 hover:text-black transition"><i class="fas fa-external-link-alt mr-1"></i> Website</a>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            return `<div class="max-w-6xl w-full glass-panel p-8 md:p-12 rounded-xl"><h2 class="text-4xl font-bold mb-10 text-cyan-400 border-b border-gray-700 pb-4">Projects</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-8">${items || '<div class="text-gray-500">No projects yet.</div>'}</div></div>`;
+        };
+
+        const renderCertificates = () => {
+            let items = portfolioState.certificates.map((c, i) => `
+                <div class="group relative bg-gray-900/60 p-8 rounded-xl border border-white/10 hover:border-cyan-500/50 transition duration-300">
+                    <div class="absolute top-0 right-0 p-4 opacity-30"><img src="https://cdn-icons-png.flaticon.com/512/2912/2912761.png" class="w-16 h-16 grayscale"></div>
+                    <div class="relative z-10">
+                        <div class="mb-4"><img src="https://cdn-icons-png.flaticon.com/512/2912/2912761.png" class="w-10 h-10"></div>
+                        <h3 class="text-2xl font-bold text-white mb-1">${c.title}</h3>
+                        <p class="text-cyan-400 font-bold mb-4">${c.issuer}</p>
+                        <p class="text-gray-400 text-sm mb-6">${c.desc}</p>
+                        ${c.images && c.images.length > 0 ? `<button onclick="openGallery('certificates', ${i})" class="px-6 py-2 border border-cyan-500/50 text-cyan-400 rounded hover:bg-cyan-500 hover:text-black transition font-bold uppercase tracking-wider">View Certificate</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+            return `<div class="max-w-6xl w-full glass-panel p-8 md:p-12 rounded-xl"><h2 class="text-4xl font-bold mb-10 text-cyan-400 border-b border-gray-700 pb-4">Professional Certifications</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-8">${items || '<div class="text-gray-500">No certificates.</div>'}</div></div>`;
+        };
+
+        const renderContact = () => `<div class="max-w-6xl w-full glass-panel p-8 md:p-12 rounded-2xl mx-auto border border-white/10"><div class="text-center mb-10"><h2 class="text-5xl font-bold text-cyan-400 mb-4">Get In Touch</h2><p class="text-xl text-gray-300">Have a project in mind or want to discuss AI? Send me a message.</p></div><form onsubmit="submitContact(event)" class="space-y-6 max-w-3xl mx-auto"><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="text-left"><label class="block text-sm text-cyan-400 mb-2 font-bold tracking-wider">NAME</label><input type="text" class="w-full bg-black/40 border border-gray-700 p-4 rounded text-white focus:border-cyan-400 outline-none transition" required></div><div class="text-left"><label class="block text-sm text-cyan-400 mb-2 font-bold tracking-wider">EMAIL</label><input type="email" class="w-full bg-black/40 border border-gray-700 p-4 rounded text-white focus:border-cyan-400 outline-none transition" required></div></div><div class="text-left"><label class="block text-sm text-cyan-400 mb-2 font-bold tracking-wider">MESSAGE</label><textarea rows="5" class="w-full bg-black/40 border border-gray-700 p-4 rounded text-white focus:border-cyan-400 outline-none transition" required></textarea></div><button class="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 rounded font-bold text-white text-lg hover:shadow-[0_0_20px_rgba(0,243,255,0.4)] transition">SEND TRANSMISSION</button></form></div>`;
+
+        // 7. ADMIN DASHBOARD RENDERER
+        const renderAdminDashboard = () => {
+            let content = '';
+            
+            if (activeAdminTab === 'profile') {
+                let expList = portfolioState.profile.experience.map((exp, i) => `<div class="bg-white/5 p-4 rounded flex justify-between items-center mb-2"><div><span class="font-bold">${exp.role}</span> at ${exp.company}</div><button onclick="deleteItem('experience', ${i})" class="text-red-400"><i class="fas fa-trash"></i></button></div>`).join('');
+                content = `
+                    <h3 class="text-xl font-bold text-white mb-6">Profile Settings</h3>
+                    <div class="space-y-4 mb-8">
+                        <div><label class="text-sm text-gray-400">Profile Image</label><input type="file" accept="image/*" onchange="handleAvatarUpload(this)" class="w-full bg-black/50 border border-gray-700 p-2 rounded text-white mt-1"></div>
+                        <input id="admin-name" class="w-full bg-black/50 border border-gray-700 p-3 text-white rounded" value="${portfolioState.profile.name}">
+                        <!-- Removed Job Title Input -->
+                        <textarea id="admin-about" class="w-full h-32 bg-black/50 border border-gray-700 p-3 text-white rounded">${portfolioState.profile.about}</textarea>
+                        <button onclick="saveProfile()" class="bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-2 rounded font-bold">Save Profile</button>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-4 pt-6 border-t border-gray-700">Manage Experience</h3>
+                    <div class="mb-6 space-y-2 bg-black/20 p-4 rounded">
+                        <h4 class="text-sm text-cyan-400 font-bold mb-2">${editMode ? 'Edit Experience' : 'Add Experience'}</h4>
+                        <input id="new-exp-role" placeholder="Role (e.g. AI Intern)" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded">
+                        <input id="new-exp-comp" placeholder="Company" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded">
+                        <input id="new-exp-date" placeholder="Date (e.g. 2023 - Present)" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded">
+                        <textarea id="new-exp-desc" placeholder="Desc" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"></textarea>
+                        <div><label class="text-sm text-gray-400">Company Logo</label><input type="file" accept="image/*" id="new-exp-logo" class="w-full bg-black/50 border border-gray-700 p-2 rounded text-white mt-1"></div>
+                        
+                        ${editMode ? 
+                            `<div class="flex gap-2"><button onclick="saveExperienceEdit()" class="bg-blue-600 flex-1 py-2 rounded font-bold">Update</button><button onclick="cancelEdit()" class="bg-gray-600 px-4 py-2 rounded font-bold">Cancel</button></div>` 
+                            : 
+                            `<button onclick="addExperience()" class="bg-green-600 w-full py-2 rounded font-bold">Add Experience</button>`
+                        }
+                    </div>
+                    <div>${expList}</div>
+                `;
+            } 
+            else if (activeAdminTab === 'education') {
+                let items = portfolioState.education.map((edu, i) => `<div class="bg-white/5 p-4 rounded flex justify-between items-center mb-2"><div><div class="font-bold text-white">${edu.degree}</div></div><div><button onclick="editEducation(${i})" class="text-blue-400 mr-3"><i class="fas fa-edit"></i></button><button onclick="deleteItem('education', ${i})" class="text-red-400"><i class="fas fa-trash"></i></button></div></div>`).join('');
+                content = `<h3 class="text-xl font-bold text-white mb-6">Manage Education</h3><div class="mb-6 space-y-2 border-b border-gray-700 pb-6 bg-black/20 p-4 rounded"><h4 class="text-sm text-cyan-400 font-bold mb-2">${editMode ? 'Edit Entry' : 'Add New Entry'}</h4><input id="edu-degree" placeholder="Degree" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><input id="edu-inst" placeholder="Institute" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><input id="edu-year" placeholder="Year" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><textarea id="edu-desc" placeholder="Description" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"></textarea><div class="pt-2"><label class="text-sm text-gray-400">Upload Gallery (Max 10)</label><input type="file" multiple accept="image/*" id="edu-images" class="w-full bg-black/50 border border-gray-700 p-2 rounded text-white mt-1"></div>${editMode ? `<div class="flex gap-2"><button onclick="saveEducationEdit()" class="bg-blue-600 flex-1 py-2 rounded font-bold">Update</button><button onclick="cancelEdit()" class="bg-gray-600 px-4 py-2 rounded font-bold">Cancel</button></div>` : `<button onclick="addEducation()" class="bg-green-600 w-full py-2 rounded font-bold">Add New</button>`}</div><div>${items}</div>`;
+            }
+            else if (activeAdminTab === 'hackathon') {
+                let items = portfolioState.hackathons.map((h, i) => `<div class="bg-white/5 p-4 rounded flex justify-between items-center mb-2"><div>${h.title}</div><div><button onclick="editHackathon(${i})" class="text-blue-400 mr-3"><i class="fas fa-edit"></i></button><button onclick="deleteItem('hackathons', ${i})" class="text-red-400"><i class="fas fa-trash"></i></button></div></div>`).join('');
+                content = `<h3 class="text-xl font-bold text-white mb-6">Manage Hackathons</h3><div class="mb-6 space-y-2 border-b border-gray-700 pb-6 bg-black/20 p-4 rounded"><h4 class="text-sm text-cyan-400 font-bold mb-2">${editMode ? 'Edit' : 'Add New'}</h4><input id="hack-title" placeholder="Title" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><input id="hack-rank" placeholder="Rank (e.g. Winner)" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><textarea id="hack-desc" placeholder="Desc" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"></textarea><input id="hack-demo" placeholder="Demo Link" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><div class="pt-2"><label class="text-sm text-gray-400">Upload Images (Max 15)</label><input type="file" multiple accept="image/*" id="hack-images" class="w-full bg-black/50 border border-gray-700 p-2 rounded text-white mt-1"></div>${editMode ? `<div class="flex gap-2"><button onclick="saveHackathonEdit()" class="bg-blue-600 flex-1 py-2 rounded font-bold">Update</button><button onclick="cancelEdit()" class="bg-gray-600 px-4 py-2 rounded font-bold">Cancel</button></div>` : `<button onclick="addHackathon()" class="bg-green-600 w-full py-2 rounded font-bold">Add New</button>`}</div><div>${items}</div>`;
+            } 
+            else if (activeAdminTab === 'projects') {
+                let items = portfolioState.projects.map((p, i) => `<div class="bg-white/5 p-4 rounded flex justify-between items-center mb-2"><div>${p.title}</div><div><button onclick="editProject(${i})" class="text-blue-400 mr-3"><i class="fas fa-edit"></i></button><button onclick="deleteItem('projects', ${i})" class="text-red-400"><i class="fas fa-trash"></i></button></div></div>`).join('');
+                content = `<h3 class="text-xl font-bold text-white mb-6">Manage Projects</h3><div class="mb-6 space-y-2 border-b border-gray-700 pb-6 bg-black/20 p-4 rounded"><h4 class="text-sm text-cyan-400 font-bold mb-2">${editMode ? 'Edit' : 'Add New'}</h4><input id="proj-title" placeholder="Title" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><textarea id="proj-desc" placeholder="Desc" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><input id="proj-git" placeholder="GitHub Link" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><input id="proj-web" placeholder="Website Link" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><div class="pt-2"><label class="text-sm text-gray-400">Project Image</label><input type="file" accept="image/*" id="proj-image" class="w-full bg-black/50 border border-gray-700 p-2 rounded text-white mt-1"></div>${editMode ? `<div class="flex gap-2"><button onclick="saveProjectEdit()" class="bg-blue-600 flex-1 py-2 rounded font-bold">Update</button><button onclick="cancelEdit()" class="bg-gray-600 px-4 py-2 rounded font-bold">Cancel</button></div>` : `<button onclick="addProject()" class="bg-green-600 w-full py-2 rounded font-bold">Add New</button>`}</div><div>${items}</div>`;
+            }
+            else if (activeAdminTab === 'certificates') {
+                let items = portfolioState.certificates.map((c, i) => `<div class="bg-white/5 p-4 rounded flex justify-between items-center mb-2"><div>${c.title}</div><div><button onclick="editCertificate(${i})" class="text-blue-400 mr-3"><i class="fas fa-edit"></i></button><button onclick="deleteItem('certificates', ${i})" class="text-red-400"><i class="fas fa-trash"></i></button></div></div>`).join('');
+                content = `<h3 class="text-xl font-bold text-white mb-6">Manage Certificates</h3><div class="mb-6 space-y-2 border-b border-gray-700 pb-6 bg-black/20 p-4 rounded"><h4 class="text-sm text-cyan-400 font-bold mb-2">${editMode ? 'Edit' : 'Add New'}</h4><input id="cert-title" placeholder="Title" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><input id="cert-issuer" placeholder="Issuer" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"><textarea id="cert-desc" placeholder="Desc" class="w-full bg-black/50 border border-gray-700 p-2 text-white rounded"></textarea><div class="pt-2"><label class="text-sm text-gray-400">Upload Certificate (Max 2)</label><input type="file" multiple accept="image/*" id="cert-images" class="w-full bg-black/50 border border-gray-700 p-2 rounded text-white mt-1"></div>${editMode ? `<div class="flex gap-2"><button onclick="saveCertificateEdit()" class="bg-blue-600 flex-1 py-2 rounded font-bold">Update</button><button onclick="cancelEdit()" class="bg-gray-600 px-4 py-2 rounded font-bold">Cancel</button></div>` : `<button onclick="addCertificate()" class="bg-green-600 w-full py-2 rounded font-bold">Add New</button>`}</div><div>${items}</div>`;
+            }
+            else if (activeAdminTab === 'messages') {
+                if (portfolioState.messages.length === 0) content = '<div class="text-gray-400 text-center py-10">No messages received yet.</div>';
+                else {
+                    content = portfolioState.messages.map((m, i) => `
+                        <div class="bg-white/5 p-6 rounded-lg mb-4 border border-white/10 hover:border-cyan-500/30 transition">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="text-cyan-400 font-bold text-lg">${m.name}</span>
+                                    <div class="text-xs text-gray-500">${m.date}</div>
+                                </div>
+                                <button onclick="deleteItem('messages', ${i})" class="text-red-400 hover:text-red-300 transition text-sm"><i class="fas fa-trash"></i> Delete</button>
+                            </div>
+                            <div class="text-sm text-gray-300 mb-3 border-b border-white/5 pb-2">${m.email}</div>
+                            <div class="text-gray-200 bg-black/30 p-4 rounded border border-white/5 whitespace-pre-wrap">${m.msg}</div>
+                        </div>
+                    `).join('');
+                    content = `<h3 class="text-xl font-bold text-white mb-6">Inbox Messages</h3><div>${content}</div>`;
+                }
+            }
+
+            return `<div class="max-w-6xl w-full glass-panel p-8 rounded-xl h-full flex flex-col mx-auto"><div class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4"><div><h2 class="text-3xl font-bold text-cyan-400">Admin Dashboard</h2><p class="text-gray-400 text-sm">Welcome back, Swayam</p></div><button onclick="logout()" class="px-4 py-2 border border-red-500/50 text-red-400 rounded hover:bg-red-500 hover:text-white transition text-sm font-bold">LOGOUT</button></div><div class="flex flex-col md:flex-row gap-8 flex-1 overflow-hidden"><div class="w-full md:w-1/4 space-y-2"><button onclick="switchAdminTab('profile')" class="w-full text-left px-4 py-3 rounded transition ${activeAdminTab==='profile'?'bg-white/10 text-cyan-400 border-l-4 border-cyan-400':'bg-transparent text-gray-400 hover:bg-white/5'}">Profile</button><button onclick="switchAdminTab('education')" class="w-full text-left px-4 py-3 rounded transition ${activeAdminTab==='education'?'bg-white/10 text-cyan-400 border-l-4 border-cyan-400':'bg-transparent text-gray-400 hover:bg-white/5'}">Education</button><button onclick="switchAdminTab('hackathon')" class="w-full text-left px-4 py-3 rounded transition ${activeAdminTab==='hackathon'?'bg-white/10 text-cyan-400 border-l-4 border-cyan-400':'bg-transparent text-gray-400 hover:bg-white/5'}">Hackathons</button><button onclick="switchAdminTab('projects')" class="w-full text-left px-4 py-3 rounded transition ${activeAdminTab==='projects'?'bg-white/10 text-cyan-400 border-l-4 border-cyan-400':'bg-transparent text-gray-400 hover:bg-white/5'}">Projects</button><button onclick="switchAdminTab('certificates')" class="w-full text-left px-4 py-3 rounded transition ${activeAdminTab==='certificates'?'bg-white/10 text-cyan-400 border-l-4 border-cyan-400':'bg-transparent text-gray-400 hover:bg-white/5'}">Certificates</button><button onclick="switchAdminTab('messages')" class="w-full text-left px-4 py-3 rounded transition ${activeAdminTab==='messages'?'bg-white/10 text-cyan-400 border-l-4 border-cyan-400':'bg-transparent text-gray-400 hover:bg-white/5'}">Messages <span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-2">${portfolioState.messages.length}</span></button></div><div id="admin-panel-content" class="w-full md:w-3/4 bg-black/30 rounded-xl p-6 overflow-y-auto custom-scrollbar border border-white/5">${content}</div></div></div>`;
+        };
+
+        const renderLogin = () => `<div class="max-w-4xl w-full glass-panel p-8 rounded-xl mx-auto"><h2 class="text-4xl font-bold mb-6 text-cyan-400 border-b border-gray-700 pb-4">Admin Portal</h2><div class="flex flex-col items-center justify-center py-20"><div class="w-full max-w-md bg-white/5 p-8 rounded-xl border border-white/10"><h3 class="text-2xl font-bold text-white mb-6 text-center">Login</h3><form onsubmit="handleAdminLogin(event)" class="space-y-4"><div><label class="block text-gray-400 text-sm mb-2">Username</label><input type="text" id="admin-user" class="w-full p-3 bg-black/50 border border-gray-700 rounded text-white focus:outline-none focus:border-cyan-400 transition"></div><div><label class="block text-gray-400 text-sm mb-2">Password</label><input type="password" id="admin-pass" class="w-full p-3 bg-black/50 border border-gray-700 rounded text-white focus:outline-none focus:border-cyan-400 transition"></div><button type="submit" class="w-full py-3 mt-4 bg-cyan-600 hover:bg-cyan-500 rounded font-bold transition text-lg uppercase tracking-widest shadow-[0_0_15px_rgba(8,145,178,0.5)]">Enter System</button></form></div></div></div>`;
+
+        // --- CORE NAVIGATION ---
+        function navigateTo(pageId) {
+            const landingView = document.getElementById('landing-view');
+            const pageView = document.getElementById('page-view');
+            const dynamicContent = document.getElementById('dynamic-content');
+            const navLinks = document.querySelectorAll('.top-nav-link');
+
+            if (pageId === 'home') {
+                pageView.classList.add('hidden-view');
+                landingView.classList.remove('hidden-view');
+                setTimeout(() => landingView.style.opacity = '1', 10);
+                // Initialize ScrollTrigger when returning to home
+                setTimeout(initLandingAnimations, 100);
+            } else {
+                let htmlContent = '';
+                if(pageId === 'admin') htmlContent = isAuthenticated ? renderAdminDashboard() : renderLogin();
+                else if(pageId === 'profile') htmlContent = renderProfile();
+                else if(pageId === 'education') htmlContent = renderEducation();
+                else if(pageId === 'hackathon') htmlContent = renderHackathons();
+                else if(pageId === 'projects') htmlContent = renderProjects();
+                else if(pageId === 'certificates') htmlContent = renderCertificates();
+                else if(pageId === 'contact') htmlContent = renderContact();
+                
+                dynamicContent.innerHTML = htmlContent;
+                navLinks.forEach(link => { link.classList.remove('active'); if(link.dataset.link === pageId) link.classList.add('active'); });
+                landingView.style.opacity = '0';
+                setTimeout(() => { landingView.classList.add('hidden-view'); pageView.classList.remove('hidden-view'); setTimeout(() => pageView.style.opacity = '1', 10); }, 500);
+                if (pageId === 'profile') setTimeout(initProfileLogic, 100);
+            }
+        }
+
+        // --- LOGIC: ADMIN AUTH ---
+        function handleAdminLogin(e) { e.preventDefault(); if(document.getElementById('admin-user').value==='swayam' && document.getElementById('admin-pass').value==='123') { isAuthenticated = true; navigateTo('admin'); } else { alert('Invalid Credentials'); } }
+        function logout() { isAuthenticated = false; navigateTo('admin'); }
+        function switchAdminTab(tab) { activeAdminTab = tab; editMode = false; editIndex = null; navigateTo('admin'); }
+        function cancelEdit() { editMode = false; editIndex = null; navigateTo('admin'); }
+
+        // --- LOGIC: DATA HANDLING ---
+        async function getImagesFromInput(input, max) {
+            if (input.files) {
+                const promises = Array.from(input.files).slice(0, max).map(file => new Promise((resolve) => { const reader = new FileReader(); reader.onload = (e) => resolve(e.target.result); reader.readAsDataURL(file); }));
+                return await Promise.all(promises);
+            } return [];
+        }
+        function deleteItem(type, index) { if(confirm('Delete?')) { if(type==='experience') portfolioState.profile.experience.splice(index,1); else portfolioState[type].splice(index,1); navigateTo('admin'); } }
+
+        // Profile
+        function handleAvatarUpload(input) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = function(e) { portfolioState.profile.avatar = e.target.result; }; reader.readAsDataURL(input.files[0]); } }
+        function saveProfile() { portfolioState.profile.name = document.getElementById('admin-name').value; portfolioState.profile.title = document.getElementById('admin-title').value; portfolioState.profile.about = document.getElementById('admin-about').value; alert('Saved'); }
+        async function addExperience() {
+            const logoImgs = await getImagesFromInput(document.getElementById('new-exp-logo'), 1);
+            portfolioState.profile.experience.push({ 
+                role: document.getElementById('new-exp-role').value, 
+                company: document.getElementById('new-exp-comp').value, 
+                date: document.getElementById('new-exp-date').value, 
+                desc: document.getElementById('new-exp-desc').value,
+                logo: logoImgs[0] || ''
+            }); 
+            navigateTo('admin'); 
+        }
+        function editExperience(i) {
+            editMode = true;
+            editIndex = i;
+            navigateTo('admin');
+            setTimeout(() => {
+                const exp = portfolioState.profile.experience[i];
+                document.getElementById('new-exp-role').value = exp.role;
+                document.getElementById('new-exp-comp').value = exp.company;
+                document.getElementById('new-exp-date').value = exp.date;
+                document.getElementById('new-exp-desc').value = exp.desc;
+            }, 50);
+        }
+        async function saveExperienceEdit() {
+            const logoImgs = await getImagesFromInput(document.getElementById('new-exp-logo'), 1);
+            const exp = portfolioState.profile.experience[editIndex];
+            exp.role = document.getElementById('new-exp-role').value;
+            exp.company = document.getElementById('new-exp-comp').value;
+            exp.date = document.getElementById('new-exp-date').value;
+            exp.desc = document.getElementById('new-exp-desc').value;
+            if (logoImgs.length > 0) exp.logo = logoImgs[0];
+            cancelEdit();
+        }
+
+        // Education
+        async function addEducation() { const imgs = await getImagesFromInput(document.getElementById('edu-images'), 10); portfolioState.education.push({ degree: document.getElementById('edu-degree').value, institution: document.getElementById('edu-inst').value, year: document.getElementById('edu-year').value, desc: document.getElementById('edu-desc').value, images: imgs }); navigateTo('admin'); }
+        function editEducation(i) { editMode = true; editIndex = i; navigateTo('admin'); setTimeout(() => { const e = portfolioState.education[i]; document.getElementById('edu-degree').value=e.degree; document.getElementById('edu-inst').value=e.institution; document.getElementById('edu-year').value=e.year; document.getElementById('edu-desc').value=e.desc; }, 50); }
+        async function saveEducationEdit() { const imgs = await getImagesFromInput(document.getElementById('edu-images'), 10); const e = portfolioState.education[editIndex]; e.degree = document.getElementById('edu-degree').value; e.institution = document.getElementById('edu-inst').value; e.year = document.getElementById('edu-year').value; e.desc = document.getElementById('edu-desc').value; if(imgs.length) e.images = imgs; cancelEdit(); }
+
+        // Hackathon
+        async function addHackathon() { const imgs = await getImagesFromInput(document.getElementById('hack-images'), 15); portfolioState.hackathons.push({ title: document.getElementById('hack-title').value, rank: document.getElementById('hack-rank').value, desc: document.getElementById('hack-desc').value, demoLink: document.getElementById('hack-demo').value, likes: 0, images: imgs }); navigateTo('admin'); }
+        function editHackathon(i) { editMode = true; editIndex = i; navigateTo('admin'); setTimeout(() => { const h = portfolioState.hackathons[i]; document.getElementById('hack-title').value=h.title; document.getElementById('hack-rank').value=h.rank; document.getElementById('hack-desc').value=h.desc; document.getElementById('hack-demo').value=h.demoLink || ''; }, 50); }
+        async function saveHackathonEdit() { const imgs = await getImagesFromInput(document.getElementById('hack-images'), 15); const h = portfolioState.hackathons[editIndex]; h.title = document.getElementById('hack-title').value; h.rank = document.getElementById('hack-rank').value; h.desc = document.getElementById('hack-desc').value; h.demoLink = document.getElementById('hack-demo').value; if(imgs.length) h.images = imgs; cancelEdit(); }
+
+        // Projects
+        async function addProject() { 
+            const imgs = await getImagesFromInput(document.getElementById('proj-image'), 1); 
+            portfolioState.projects.push({ title: document.getElementById('proj-title').value, desc: document.getElementById('proj-desc').value, githubLink: document.getElementById('proj-git').value, websiteLink: document.getElementById('proj-web').value, image: imgs[0] || '' }); 
+            navigateTo('admin'); 
+        }
+        function editProject(i) { 
+            editMode = true; editIndex = i; navigateTo('admin'); 
+            setTimeout(() => { const p = portfolioState.projects[i]; document.getElementById('proj-title').value=p.title; document.getElementById('proj-desc').value=p.desc; document.getElementById('proj-git').value=p.githubLink || ''; document.getElementById('proj-web').value=p.websiteLink || ''; }, 50); 
+        }
+        async function saveProjectEdit() { 
+            const imgs = await getImagesFromInput(document.getElementById('proj-image'), 1);
+            const p = portfolioState.projects[editIndex]; 
+            p.title = document.getElementById('proj-title').value; 
+            p.desc = document.getElementById('proj-desc').value; 
+            p.githubLink = document.getElementById('proj-git').value; 
+            p.websiteLink = document.getElementById('proj-web').value; 
+            if(imgs.length) p.image = imgs[0];
+            cancelEdit(); 
+        }
+
+        // Certificates
+        async function addCertificate() { const imgs = await getImagesFromInput(document.getElementById('cert-images'), 2); portfolioState.certificates.push({ title: document.getElementById('cert-title').value, issuer: document.getElementById('cert-issuer').value, desc: document.getElementById('cert-desc').value, images: imgs }); navigateTo('admin'); }
+        function editCertificate(i) { editMode = true; editIndex = i; navigateTo('admin'); setTimeout(() => { const c = portfolioState.certificates[i]; document.getElementById('cert-title').value=c.title; document.getElementById('cert-issuer').value=c.issuer; document.getElementById('cert-desc').value=c.desc; }, 50); }
+        async function saveCertificateEdit() { const imgs = await getImagesFromInput(document.getElementById('cert-images'), 2); const c = portfolioState.certificates[editIndex]; c.title = document.getElementById('cert-title').value; c.issuer = document.getElementById('cert-issuer').value; c.desc = document.getElementById('cert-desc').value; if(imgs.length) c.images = imgs; cancelEdit(); }
+
+        // --- GALLERIES & SLIDESHOW LOGIC ---
+        function openGallery(type, index) {
+            // DIRECT SLIDESHOW ACCESS: Skip grid, go to slideshow
+            galleryContext = portfolioState[type][index].images || [];
+            if(galleryContext.length === 0) return alert("No images available.");
+            
+            // Start slideshow at first image
+            openSlideshow(0);
+        }
+
+        function openSlideshow(index) {
+            currentSlideIndex = index;
+            updateViewerImage();
+            document.getElementById('image-viewer').classList.remove('hidden');
+            
+            // Handle Navigation Buttons
+            const prev = document.getElementById('viewer-prev');
+            const next = document.getElementById('viewer-next');
+            if (galleryContext.length > 1) {
+                prev.classList.remove('hidden');
+                next.classList.remove('hidden');
+            } else {
+                prev.classList.add('hidden');
+                next.classList.add('hidden');
+            }
+        }
+
+        function changeViewerImage(step) {
+            currentSlideIndex += step;
+            if (currentSlideIndex >= galleryContext.length) currentSlideIndex = 0;
+            if (currentSlideIndex < 0) currentSlideIndex = galleryContext.length - 1;
+            updateViewerImage();
+        }
+
+        function updateViewerImage() {
+            document.getElementById('viewer-img').src = galleryContext[currentSlideIndex];
+        }
+
+        function closeViewer() { 
+            document.getElementById('image-viewer').classList.add('hidden'); 
+        }
+        
+        // Helper
+        function likeHackathon(btn) { const i = btn.querySelector('i'); const s = btn.parentElement.querySelector('.count'); let c = parseInt(s.innerText); if(i.classList.contains('far')) { i.classList.replace('far','fas'); i.classList.add('heart-active'); c++; } else { i.classList.replace('fas','far'); i.classList.remove('heart-active'); c--; } s.innerText = c; }
+        function initProfileLogic() { const b = document.querySelectorAll(".card-buttons button"); const s = document.querySelectorAll(".card-section"); const c = document.querySelector(".card"); if (!c || !b.length) return; b.forEach(btn => { btn.addEventListener("click", (e) => { const t = e.target.getAttribute("data-section"); c.setAttribute("data-state", t); if(t !== "#about") c.classList.add("is-active"); else c.classList.remove("is-active"); s.forEach(x => x.classList.remove("is-active")); b.forEach(y => y.classList.remove("is-active")); e.target.classList.add("is-active"); document.querySelector(t).classList.add("is-active"); }); }); }
+
+        // --- THREE JS ---
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            let renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            let scene = new THREE.Scene();
+            let camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1500);
+            camera.position.set(2.5, 0.5, 2.5);
+            let orbit = new THREE.OrbitControls(camera, renderer.domElement);
+            orbit.enableDamping = true; orbit.enableZoom = false; 
+            let light = new THREE.SpotLight(0xffffff, 0.8, 0, Math.PI/3, 0.5, 1); light.position.set(5, 3, 5); light.castShadow = true; scene.add(light);
+            scene.add(new THREE.AmbientLight(0x333333));
+            let texLoader = new THREE.TextureLoader(); texLoader.crossOrigin = 'anonymous';
+            let earth = new THREE.Mesh(new THREE.SphereGeometry(0.8, 64, 64), new THREE.MeshPhongMaterial({ bumpScale: 0.05, specular: new THREE.Color(0x333333), shininess: 5 }));
+            texLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/141228/earthmap1k.jpg', t => { earth.material.map = t; earth.material.needsUpdate = true; });
+            texLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/141228/earthbump1k.jpg', t => { earth.material.bumpMap = t; earth.material.needsUpdate = true; });
+            texLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/141228/earthspec1k.jpg', t => { earth.material.specularMap = t; earth.material.needsUpdate = true; });
+            let atmo = new THREE.Mesh(new THREE.SphereGeometry(0.805, 64, 64), new THREE.MeshPhongMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0.8 }));
+            texLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/141228/earthcloudmap.jpg', t => { atmo.material.map = t; atmo.material.needsUpdate = true; });
+            texLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/141228/earthcloudmaptrans.jpg', t => { atmo.material.alphaMap = t; atmo.material.needsUpdate = true; });
+            let glow = new THREE.Mesh(new THREE.SphereGeometry(0.845, 64, 64), new THREE.ShaderMaterial({ uniforms: { c: { type: 'f', value: 0.5 }, p: { type: 'f', value: 5 }, glowColor: { type: 'c', value: new THREE.Color(0x93cfef) }, viewVector: { type: 'v3', value: camera.position } }, vertexShader: `uniform vec3 viewVector; uniform float c; uniform float p; varying float intensity; void main() { vec3 vNormal = normalize( normalMatrix * normal ); vec3 vNormel = normalize( normalMatrix * viewVector ); intensity = pow( c - dot(vNormal, vNormel), p ); gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 ); }`, fragmentShader: `uniform vec3 glowColor; varying float intensity; void main() { vec3 glow = glowColor * intensity; gl_FragColor = vec4( glow, 1.0 ); }`, side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true }));
+            let planet = new THREE.Group(); planet.add(earth); planet.add(atmo); planet.add(glow); scene.add(planet);
+            let starMat = new THREE.MeshBasicMaterial({ side: THREE.BackSide });
+            texLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/141228/starfield.png', t => { starMat.map = t; starMat.needsUpdate = true; });
+            scene.add(new THREE.Mesh(new THREE.SphereGeometry(150, 32, 32), starMat));
+            renderer.setSize(window.innerWidth, window.innerHeight); container.appendChild(renderer.domElement);
+            window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+            function animate() { requestAnimationFrame(animate); earth.rotation.y += 0.0005; atmo.rotation.y += 0.0007; glow.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(camera.position, planet.position); orbit.update(); renderer.render(scene, camera); }
+            animate();
+            
+            // Init GSAP
+            initLandingAnimations();
+        }
+        
+        initThreeJS();
+    </script>
+</body>
+</html>
